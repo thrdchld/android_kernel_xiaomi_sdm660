@@ -722,6 +722,9 @@ KBUILD_CFLAGS += -ffp-contract=fast
 # Enable hot cold split optimization
 KBUILD_CFLAGS += -mllvm -hot-cold-split=true
 
+# Enable MLGO for register allocation
+KBUILD_LDFLAGS += -mllvm -regalloc-enable-advisor=release
+
 ifdef CONFIG_CC_WERROR
 KBUILD_CFLAGS  += -Werror
 endif
