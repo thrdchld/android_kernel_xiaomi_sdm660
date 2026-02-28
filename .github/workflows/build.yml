@@ -1,0 +1,63 @@
+name: Build Kernel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bc libssl-dev bison flex libncurses5-dev
+          sudo apt-get install -y clang llvm
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Setup Build Environment
+        run: |
+          echo "ARCH=arm64" >> $GITHUB_ENV
+          echo "SUBARCH=arm64" >> $GITHUB_ENV
+          echo "KBUILD_BUILD_USER=GitHub-Actions" >> $GITHUB_ENV
+          echo "KBUILD_BUILD_HOST=GitHub" >> $GITHUB_ENV
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
+
+      - name: Clean Build Directory
+        run: |
+          make mrproper
+
+      - name: Apply Defconfig
+        run: |
+          make clover_defconfig
+
+      - name: Build Kernel
+        run: |
+          make -j$(nproc --all)
+
+      - name: Create Flashable Zip
+        run: |
+          mkdir -p anykernel
+          cp arch/arm64/boot/Image.gz-dtb anykernel/
+          # Add any other files needed for a flashable zip here
+          # For example: cp modules anykernel/
+          cd anykernel
+          zip -r9 ../kernel-clover.zip .
+          cd ..
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-clover
+          path: kernel-clover.zip
